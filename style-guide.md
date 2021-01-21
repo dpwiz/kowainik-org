@@ -169,20 +169,24 @@ mapSelect :: forall a . (a -> Bool) -> (a -> a) -> (a -> a) -> [a] -> [a]
 mapSelect test ifTrue ifFalse = go
   where
     go :: [a] -> [a]
-    go [] = []
-    go (x:xs) = if test x
-        then ifTrue  x : go xs
-        else ifFalse x : go xs
+    go = \case
+      x : xs =
+        if test x then
+          ifTrue x : go xs
+        else
+          fFalse x : go xs
 
 -- - Bad
 mapSelect :: forall a . (a -> Bool) -> (a -> a) -> (a -> a) -> [a] -> [a]
 mapSelect p f g = go
   where
     go :: [a] -> [a]
-    go [] = []
-    go (x:xs) = if p x
-        then f x : go xs
-        else g x : go xs
+    go = \case
+      x : xs =
+        if p x then
+          f x : go xs
+        else
+          g x : go xs
 ```
 
 Do not introduce unnecessarily long names for variables.
@@ -199,8 +203,8 @@ map f = \case
 -- - Bad
 map :: (a -> b) -> [a] -> [b]
 map _ [] = []
-map function (firstElement:remainingList) =
-    function firstElement : map function remainingList
+map function (firstElement : remainingList) =
+  function firstElement : map function remainingList
 ```
 
 For readability reasons, do not capitalize all letters when using an
@@ -221,6 +225,7 @@ data type (like `Int`, `String`, `Set Text`, etc.).
 ```haskell
 -- + Good
 data StateT s m a
+
 type State s = StateT s Identity
 
 -- - Bad
@@ -270,6 +275,21 @@ data HealthReading = HealthReading
   }
 ```
 
+Prefixing with `_` shows that the type is intended to be used with lenses.
+
+```haskell
+-- + Acceptable
+data Something = Something
+  { _sLastSeen :: UTCTime
+  , _sMailbox  :: TVar Double
+  }
+
+touch :: App ()
+touch = do
+  now <- getTimestamp
+  _sLastSeen .= now
+```
+
 ## Comments
 
 Separate end-of-line comments from the code with _2 spaces_.
@@ -285,12 +305,15 @@ for the top-level functions, function arguments
 and data type fields. The documentation should give enough
 information to apply the function without looking at its definition.
 
-Use block comment style (`{- |` and `-}`) for Haddock in multiple line comments.
+Use block comment style (`{- |` and `-}`) for Haddock in multiple line comments
+and indent text body. Block header can be left on the opening line.
 
 ```haskell
 -- + Good
-{- | Example of multi-line block comment which is very long
-and doesn't fit single line.
+{- | Example header
+
+  Example of multi-line block comment which is very very very very very long
+  and doesn't fit single line.
 -}
 foo :: Int -> [a] -> [a]
 
@@ -312,8 +335,11 @@ types (pre or post) for the function arguments, data type constructors, and fiel
 
 ```haskell
 -- + Good
-{- | 'replicate' @n x@ returns list of length @n@ with @x@ as the value of
-every element. This function is lazy in its returned value.
+{- |
+  'replicate' @n x@ returns list of length @n@ with @x@ as the value of
+  every element.
+
+  This function is lazy in its returned value.
 -}
 replicate
   :: Int  -- ^ Length of returned list
@@ -345,8 +371,9 @@ class Semigroup a where
   (<>) :: a -> a -> a
 
 
-{- | The 'intersperse' function takes a character and places it
-between the characters of a 'Text'.
+{- |
+  The 'intersperse' function takes a character and places it
+  between the characters of a 'Text'.
 
 >>> Text.intersperse '.' "SHIELD"
 "S.H.I.E.L.D"
@@ -356,12 +383,6 @@ intersperse :: Char -> Text -> Text
 
 ## Guideline for module formatting
 
-Use these tools for automatic module formatting:
-
-* [`stylish-haskell`](https://github.com/jaspervdj/stylish-haskell)
-  (with a relevant [`.stylish-haskell.yaml`](https://github.com/kowainik/org/blob/main/.stylish-haskell.yaml)):
-  for formatting the import section and for alignment.
-
 ### {-# LANGUAGE #-}
 
 Put `OPTIONS_GHC` pragma before `LANGUAGE` pragmas in a separate section.
@@ -370,11 +391,11 @@ Write each `LANGUAGE` pragma on its own line and sort them alphabetically.
 Do not align finishing braces.
 
 ```haskell
-{-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-} -- XXX: Required due reasons.
 
-{-# LANGUAGE ApplicativeDo #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE InsufferablePerformIO #-}
+{-# LANGUAGE ScopedBashVariables #-}
+{-# LANGUAGE TemplateCmake #-}
 ```
 
 ### Default extensions
@@ -387,29 +408,46 @@ writing new code for GHC >= 8.10:
 ```yaml
 default-extensions:
 - ApplicativeDo
+- BangPatterns
+- BinaryLiterals
 - BlockArguments
+- ConstrainedClassMethods
 - ConstraintKinds
 - DataKinds
 - DefaultSignatures
 - DeriveDataTypeable
+- DeriveFunctor
 - DeriveGeneric
-- DeriveGeneric
+- DeriveLift
 - DeriveTraversable
 - DerivingStrategies
+- DerivingVia
 - DuplicateRecordFields
+- EmptyCase
+- EmptyDataDeriving
+- ExistentialQuantification
+- ExplicitForAll
 - FlexibleContexts
 - FlexibleInstances
 - FunctionalDependencies
+- GADTs
 - GeneralizedNewtypeDeriving
+- HexFloatLiterals
 - ImportQualifiedPost
 - InstanceSigs
+- KindSignatures
 - LambdaCase
 - LiberalTypeSynonyms
 - MultiParamTypeClasses
 - NamedFieldPuns
+- NamedWildCards
+- NumDecimals
 - NumericUnderscores
 - OverloadedStrings
 - PatternSynonyms
+- PolyKinds
+- PostfixOperators
+- QuantifiedConstraints
 - QuasiQuotes
 - RankNTypes
 - RecordWildCards
@@ -421,6 +459,8 @@ default-extensions:
 - TypeApplications
 - TypeFamilies
 - TypeOperators
+- TypeSynonymInstances
+- UnicodeSyntax
 - ViewPatterns
 ```
 
@@ -430,12 +470,16 @@ Other extensions, like `TemplateHaskell` and `CPP` are to be put in file headers
 
 Use the following rules to format the export section:
 
-1. **Always write** an explicit export list.
+1. **Always** write an explicit export list.
 2. Indent the export list by _2 spaces_.
-3. You can split the export list into sections. Use Haddock to assign names to
-   these sections.
-4. Classes, data types and type aliases should be written before functions in
-   each section.
+3. You can split the export list into sections.
+   Use Haddock to assign names to these sections.
+4. Order items inside each group:
+   1. Classes
+   2. Types
+   3. patterns
+   4. functions
+   5. operators
 
 ```haskell
 module Data.ExtraFast.Map
@@ -455,15 +499,11 @@ module Data.ExtraFast.Map
 
 Always use **explicit import lists** or **qualified imports**.
 
-> __Exception:__ modules that only reexport other entire modules.
+Qualified imports are recommended in the following situations:
 
-Use your judgement to choose between explicit import lists or
-qualified imports. However, qualified imports are recommended in the
-following situations:
-
+* A library is designed for qualified imports, e.g. `tomland`
 * Name conflicts
 * Long export lists
-* A library is designed for qualified imports, e.g. `tomland`
 
 This import policy makes the code more maintainable and robust against
 changes in dependent libraries.
@@ -487,10 +527,10 @@ import App.Service qualified as Svc
 
 Imports should be grouped in the following order:
 
-1. Prelude, if not implicit
-2. 3rd party packages (inlcuding `base`).
-3. Project-packages (like `nk-extra`).
-4. Package modules
+0. Prelude and equivalents
+1. 3rd party packages (inlcuding `base`).
+2. Project-packages (like `nk-extra`).
+3. Package modules
 
 Put a blank line between each group of imports.
 
@@ -551,7 +591,8 @@ data Foo
 
 ### Strictness
 
-With package-enabled [StrictData] constructorss have their fields strict by default.
+With package-enabled [StrictData] constructors have their fields
+strict by default.
 
 This helps to avoid space leaks and gives you an error instead of a
 warning in case you forget to initialize some fields.
@@ -576,13 +617,16 @@ data Settings = Settings
 
 ### Deriving
 
-Always specify a deriving strategy for each deriving clause.
+Always specify deriving strategies for each deriving clause when using
+anything other than stock and newtype.
+Consider stating strategies when mixing `stock` and `newtype`.
 Use [DerivingStrategies](https://kowainik.github.io/posts/deriving)
 to explicitly specify the way you want to derive type classes.
 
 Type classes in the deriving section should always be surrounded by parentheses.
 
 Derive `Show` and `Eq` instances for all introduced data types where possible.
+That could help with debugging.
 
 Derive `Ord`, `Bounded`, `Enum` for enumeration types without constructor fields.
 
@@ -614,9 +658,9 @@ its own line with respect to alignment.
 sendEmail
   :: forall env m
   .  ( MonadLog m
-      , MonadEmail m
-      , WithDb env m
-      )
+     , MonadEmail m
+     , WithDb env m
+     )
   => Email
   -> Subject
   -> Body
@@ -795,9 +839,10 @@ mainIsh = do
     quux = getQuux thingy
 
   let
-    next = case pickNext ctx of
-      Nothing -> mempty
-      Just  r -> r
+    next =
+      case pickNext ctx of
+        Nothing -> mempty
+        Just  r -> r
 
   proceed next foo baz quux
   where
@@ -813,9 +858,13 @@ Avoid abusing point-free style. Sometimes code is clearer when **not** written
 in point-free style:
 
 ```haskell
--- + Good
+-- + Acceptable
 foo :: Int -> a -> Int
 foo n x = length $ replicate n x
+
+-- + Acceptable
+foo :: Int -> a -> Int
+foo n = length . replicate n
 
 -- - Bad
 foo :: Int -> a -> Int
@@ -829,7 +878,8 @@ position-sensitive errors where possible.
 
 Avoid using operators where a function would suffice.
 
-Avoid `<$>` in general. It could look good with `<*>`, but with `ApplicativeDo` it's time is over.
+Avoid `<$>` in general. It could look good with `<*>`, but
+with `ApplicativeDo` it's time has passed.
 
 Avoid partial functions like `Prelude.head`. Use data types that provide total alternatives.
 
@@ -856,8 +906,9 @@ foo xs =
     zip xs (repeat 0)
 ```
 
-On a related note, avoid the `void`. It has some merit in one-liners, but in big blocks
-you have the luxury of having named discards.
+On a related note, avoid the `void`.
+It has some merit in one-liners, but in big blocks you have
+the luxury of having named discards.
 
 ```haskell
 -- + Good
@@ -890,22 +941,45 @@ something todo = do
   somethingElse x 42
 ```
 
-Dangling arrows in `do` blocks are a code smell, time to extract the code.
+Dangling arrows in `do` blocks that result from following those rules
+are actually a code smell, time to extract the code.
 
-Don't use `String`. If you really need a stack of unicode characters, then write it as it is - `[Char]`.
-It's okay to use string literals though, if the type matches.
+```haskell
+-- - Bad
+something todo = do
+  x <-
+    getThings
+      todo
+      delegate
+      procrastinate
+      (actuallyDo <=< collect <=< finish)
+  somethingElse x 42
+
+```
+
+Don't use `String`. If you really need a _stack of unicode characters_,
+then write it as it is - `[Char]`.
+It's okay to use string literals though.
 
 Use strict `Text` for, well, textual data.
 Use `ByteString` for IO.
 Convert between the two explicitly.
 Don't use `printf`.
 
+Do not use `flip`. While it is nice to have a code block right at the site
+it is difficult to follow.
+
+> Do not even propose `flip3`. No, never.
+
 Prefer `traverse`/`traverse_` over `mapM`/`mapM_`. Use `for`/`for_` sparingly.
-With a good prelude they are readily availablable.
+With a good prelude they are readily available.
 
 Use a good prelude. Currently - RIO.
 
 Run a full `stack build --test --pedantic` before submitting your code.
+
+Consult HLint, but don't apply its suggestions mechanically.
+Most of the time you have to do some macro-scale adjustment.
 
 ## GHC options
 
